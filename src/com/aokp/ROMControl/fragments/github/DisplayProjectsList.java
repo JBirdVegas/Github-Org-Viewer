@@ -1,0 +1,146 @@
+package com.aokp.ROMControl.fragments.github;
+
+import android.content.Context;
+import android.os.AsyncTask;
+import android.preference.Preference;
+import android.preference.PreferenceCategory;
+import android.preference.PreferenceScreen;
+import android.util.Log;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
+/**
+ * Created with IntelliJ IDEA.
+ * User: jbird
+ * Date: 11/1/12
+ * Time: 5:31 PM
+ */
+public class DisplayProjectsList extends AsyncTask<Void, Void, Void> {
+    private final String TAG = getClass().getSimpleName();
+    private final boolean DEBUG = false;
+
+    private final Context mContext;
+    private final PreferenceCategory mCategory;
+    private final Config mConfig;
+
+    public DisplayProjectsList(Context context, PreferenceCategory category) {
+        mContext = context;
+        mCategory = category;
+        mConfig = new Config();
+    }
+
+    // can use UI thread here
+    protected void onPreExecute() {
+        // start with a clean view, always
+        mCategory.removeAll();
+        mCategory.setTitle(mContext.getString(R.string.loading_projects));
+    }
+
+    // worker thread
+    protected Void doInBackground(Void... unused) {
+        try {
+            // network comms are not simple and require a few components
+            // the client is the main construct
+            HttpClient httpClient = new DefaultHttpClient();
+            Log.i(TAG, "attempting to connect to: " + mConfig.REPO_URL + "?page=1&per_page=100");
+
+            // request first 30 projects
+            HttpGet requestWebsite = new HttpGet(mConfig.REPO_URL + "?page=1&per_page=100");
+            // construct that handles recieving web streams to strings
+            ResponseHandler<String> responseHandler = new BasicResponseHandler();
+            // hold the response in a JSONArray
+            JSONArray repoProjectsArray =
+                    new JSONArray(httpClient.execute(requestWebsite, responseHandler));
+
+            // debugging
+            if (DEBUG)
+                Log.d(TAG, "repoProjectsArray.length() is: " + repoProjectsArray.length());
+
+            int projectsReturned = repoProjectsArray.length();
+            int page = 1; // because we returned the first 100 already
+            while (projectsReturned <= 100) {
+                HttpGet moreProjects = new HttpGet(mConfig.REPO_URL + "?page=" + page++ + "&per_page=100");
+                // construct that handles recieving web streams to strings
+                ResponseHandler<String> responseHandler_ = new BasicResponseHandler();
+                // hold the response in a JSONArray
+                JSONArray moreProjectsArray = new JSONArray(httpClient.execute(moreProjects, responseHandler_));
+                loadProjectsToScreen(moreProjectsArray);
+
+                // drop the loop when we find a return with < 100 projects listed
+                projectsReturned = moreProjectsArray.length();
+                if (projectsReturned < 100) {
+                    break;
+                }
+            }
+        } catch (JSONException je) {
+            if (DEBUG) Log.e(TAG, "Bad json interaction...", je);
+        } catch (IOException ioe) {
+            if (DEBUG) Log.e(TAG, "IOException...", ioe);
+        } catch (NullPointerException ne) {
+            if (DEBUG)
+                Log.e(TAG, "NullPointer...", ne); //we may need to catch in the for(){} block
+        }
+        return null;
+    }
+
+    private void loadProjectsToScreen(JSONArray repoProjectsArray) {
+        try {
+            // scroll through each item in array (projects in repo organization)
+            for (int i = 0; i < repoProjectsArray.length(); i++) {
+                // make a new PreferenceScreen
+                // TODO will moving this object alocation outside the loop
+                //       cause the same PreferenceScreen to be repeatedly changed
+                //       of can we still create new screens while reusing the object?
+                PreferenceScreen mProject = mCategory.getPreferenceManager()
+                        .createPreferenceScreen(mContext);
+                // make an object of each repo
+                JSONObject projectsObject = (JSONObject) repoProjectsArray.get(i);
+
+                // extract info about each project
+                final String projectName = projectsObject.getString("name");
+                String projectHtmlUrl = projectsObject.getString("html_url");
+                String projectDescription = projectsObject.getString("description");
+                int githubProjectId = projectsObject.getInt("id");
+
+                // apply info to our preference screen
+                mProject.setKey(githubProjectId + "");
+                if (projectDescription.contains("") || projectDescription == null) {
+                    mProject.setTitle(projectName);
+                    mProject.setSummary(projectDescription);
+                } else {
+                    mProject.setTitle(projectDescription);
+                    mProject.setSummary(projectName);
+                }
+
+                mProject.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                    @Override
+                    public boolean onPreferenceClick(Preference p) {
+                        GetCommitsInProjectTask listFirstCommits =
+                                new GetCommitsInProjectTask(mContext.getApplicationContext(),
+                                mCategory);
+                        listFirstCommits.PAGE_ = 1; // we start at the most recent commits
+                        listFirstCommits.PROJECT_ = projectName;
+                        listFirstCommits.execute();
+                        return true;
+                    }
+                });
+                mCategory.addPreference(mProject);
+            }
+        } catch (JSONException badJsonRequest) {
+            Log.e(TAG, "failed to parse required info about project", badJsonRequest);
+        }
+    }
+
+    // can use UI thread here
+    protected void onPostExecute(Void unused) {
+        mCategory.setTitle(mContext.getString(R.string.org_projects));
+    }
+}
