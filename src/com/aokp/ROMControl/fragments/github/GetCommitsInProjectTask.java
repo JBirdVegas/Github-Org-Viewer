@@ -1,4 +1,21 @@
+
 package com.aokp.ROMControl.fragments.github;
+
+/*
+ * Copyright (C) 2012 The Android Open Kang Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import android.content.Context;
 import android.content.Intent;
@@ -14,15 +31,11 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 
 /**
- * Created with IntelliJ IDEA.
- * User: jbird
- * Date: 11/1/12
- * Time: 4:25 PM
+ * Displays most recent commits (30) for provided repository
  */
 public class GetCommitsInProjectTask extends AsyncTask<Void, Void, Void> {
     private final String TAG = getClass().getSimpleName();
@@ -32,23 +45,25 @@ public class GetCommitsInProjectTask extends AsyncTask<Void, Void, Void> {
     private final Context mContext;
     private final Config mConfig;
 
-    private Changelog mChangelog;
-
     int PAGE_ = - 1;
     String BRANCH_;
     String PROJECT_;
 
+    /**
+     * gets commits from provided project
+     * @param context application context
+     * @param preferenceCategory container to hold commit views
+     */
     public GetCommitsInProjectTask(Context context, PreferenceCategory preferenceCategory) {
         mContext = context;
         mCategory = preferenceCategory;
-        mChangelog = new Changelog();
         mConfig = new Config();
     }
     // inner class constants
     final String DEFAULT_BRANCH = "jb"; // TODO find a way to handle 'jellybean' branches
                                         // at the same time
 
-
+    // UI thread
     protected void onPreExecute() {
         // show commit after we load next set
         mCategory.setTitle(mContext.getString(R.string.loading_commits));
@@ -56,6 +71,7 @@ public class GetCommitsInProjectTask extends AsyncTask<Void, Void, Void> {
             mCategory.removeAll();
     }
 
+    // worker thread
     protected Void doInBackground(Void... unused) {
         // so we don't acidentally crash the ui
         if (PROJECT_ == null || PAGE_ == - 1)
@@ -76,60 +92,33 @@ public class GetCommitsInProjectTask extends AsyncTask<Void, Void, Void> {
             // debugging
             if (DEBUG)
                 Log.d(TAG, "projectCommitsArray.length() is: " + projectCommitsArray.length());
-            if (mConfig.JSON_SPEW)
+            if (Config.StaticVars.JSON_SPEW)
                 Log.d(TAG, "projectCommitsArray.toString() is: " + projectCommitsArray.toString());
 
             // make a PreferenceScreen for all commits in package
             for (int i = 0; i < projectCommitsArray.length(); i++) {
                 PreferenceScreen mCommit = mCategory.getPreferenceManager().createPreferenceScreen(mContext);
                 // make an object of each commit
-                JSONObject projectsObject = (JSONObject) projectCommitsArray.get(i);
-
-                // some fields are just plain strings we can parse
-                final String commitSsh = projectsObject.getString("sha"); // for setKey
-                final String commitWebPath = projectsObject.getString("url"); // JSON commit path
-
-                // author could possible be null so use a try block to prevent failures
-                // (merges have committers not authors, authors exist for the parent commits)
                 try {
-                    // this is slightly different as we have many values for fields
-                    // therefor each of these fields will be an object to itself (for each commit)
-                    // author; committer; parents and commit
-                    JSONObject authorObject = (JSONObject) projectsObject.getJSONObject("author");
-                    JSONObject commitObject = (JSONObject) projectsObject.getJSONObject("commit");
-                    if (mConfig.JSON_SPEW)
-                        Log.d(TAG, "authorObject: " + authorObject.toString());
-
-                    // pull needed info from our new objects (for each commit)
-                    final String authorName = authorObject.getString("login"); // github screen name
-                    final String authorAvatar = authorObject.getString("avatar_url"); // author's avatar url
-                    final String commitMessage = commitObject.getString("message"); // commit message
-
-                    // to grab the date we need to make a new object from
-                    // the commit object and collect info from there
-                    JSONObject innerAuthorObject = (JSONObject) commitObject.getJSONObject("author");
-                    JSONObject innerCommitterObject = (JSONObject) projectsObject.getJSONObject("committer");
-                    final String commitDate = innerAuthorObject.getString("date"); // commit date
-                    final String committerAvatar = innerCommitterObject.getString("avatar_url");
-                    final String committerName = innerCommitterObject.getString("login");
+                    final CommitObject commitObject = new GithubObject(projectCommitsArray.getJSONObject(i));
 
                     // apply info to our preference screen
-                    mCommit.setKey(commitSsh + "");
-                    mCommit.setTitle(commitMessage);
-                    mCommit.setSummary(authorName);
+                    mCommit.setKey(commitObject.getCommitHash());
+                    mCommit.setTitle(commitObject.getSubject());
+                    mCommit.setSummary(commitObject.getAuthorName());
                     mCommit.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                         @Override
                         public boolean onPreferenceClick(Preference p) {
                             // set variables
-                            Config.StaticVars.AUTHOR_GRAVATAR_URL = authorAvatar;
-                            Config.StaticVars.COMMITTER_GRAVATAR_URL = committerAvatar;
-                            Config.StaticVars.COMMIT_COMMITTER = committerName;
+                            Config.StaticVars.AUTHOR_GRAVATAR_URL = commitObject.getAuthorGravatar();
+                            Config.StaticVars.COMMITTER_GRAVATAR_URL = commitObject.getCommitterGravatar();
+                            Config.StaticVars.COMMIT_COMMITTER = commitObject.getCommitterName();
                             Config.StaticVars.PROJECT = PROJECT_;
-                            Config.StaticVars.COMMIT_URL = commitWebPath;
-                            Config.StaticVars.COMMIT_AUTHOR = authorName;
-                            Config.StaticVars.COMMIT_MESSAGE = commitMessage;
-                            Config.StaticVars.COMMIT_DATE = commitDate;
-                            Config.StaticVars.COMMIT_SHA = commitSsh + "";
+                            Config.StaticVars.COMMIT_URL = commitObject.getUrl();
+                            Config.StaticVars.COMMIT_AUTHOR = commitObject.getAuthorName();
+                            Config.StaticVars.COMMIT_MESSAGE = commitObject.getBody();
+                            Config.StaticVars.COMMIT_DATE = commitObject.getAuthorDate();
+                            Config.StaticVars.COMMIT_SHA = commitObject.getCommitHash();
 
                             // launch dialog
                             Intent intent = new Intent();
@@ -174,6 +163,7 @@ public class GetCommitsInProjectTask extends AsyncTask<Void, Void, Void> {
         return null;
     }
 
+    // UI thread
     protected void onPostExecute(Void unused) {
         mCategory.setTitle(mContext.getString(R.string.commits_title));
     }

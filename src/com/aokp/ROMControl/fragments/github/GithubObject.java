@@ -1,4 +1,21 @@
+
 package com.aokp.ROMControl.fragments.github;
+
+/*
+ * Copyright (C) 2012 The Android Open Kang Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -6,11 +23,11 @@ import org.json.JSONObject;
 import java.util.StringTokenizer;
 
 /**
- * Created with IntelliJ IDEA.
- * User: jbird
- * Date: 11/2/12
- * Time: 10:39 PM
- * To change this template use File | Settings | File Templates.
+ * implemtation of CommitObject that handles commit query responces from github
+ *
+ * this implemtation of CommitObject handles many more values
+ * than the ChangelogObject.  This object is where we pull values
+ * for the CommitViewerDialog.
  */
 public class GithubObject extends CommitObject {
     Config mConfig;
@@ -19,7 +36,16 @@ public class GithubObject extends CommitObject {
         mConfig = new Config();
     }
 
-    protected void parseObject(JSONObject jsonObject) {
+    /**
+     * implemtation of our interface, CommitInterface.
+     *
+     * Creates an object representing a commit from github organization
+     * @param jsonObject json formatted object to be parsed
+     */
+    @Override
+    @SuppressWarnings("UseOfStringTokenizer") // ignore BS warning
+    public void parseObject(JSONObject jsonObject) {
+        super.parseObject(jsonObject);
         mJsonObject = jsonObject;
         mTeamCredit = mConfig.ORGANIZATION.substring(0,
             mConfig.ORGANIZATION.length() - 1);
@@ -28,7 +54,7 @@ public class GithubObject extends CommitObject {
         // parent hashes
         try {
             mParentHashes = parseToString(mJsonObject.getJSONArray("parents"), "sha");
-        } catch (JSONException e) {
+        } catch (JSONException ignored) {
             // failed to get parent hashes
         }
 
@@ -40,7 +66,7 @@ public class GithubObject extends CommitObject {
             try {
                 mAuthorName = commitJson.getJSONObject("author").getString("name");
                 mAuthorDate = commitJson.getJSONObject("author").getString("date");
-            } catch (JSONException e) {
+            } catch (JSONException ignored) {
                 // failed to find author name|date
             }
 
@@ -48,17 +74,17 @@ public class GithubObject extends CommitObject {
             try {
                 mCommitterName = commitJson.getJSONObject("committer").getString("name");
                 mCommitterDate = commitJson.getJSONObject("committer").getString("date");
-            } catch (JSONException e) {
+            } catch (JSONException ignored) {
                 // failed to find committer|date
             }
 
             try {
                 mBody = commitJson.getString("message");
                 mSubject = new StringTokenizer(mBody, "\n\n").nextToken();
-            } catch (JSONException e) {
+            } catch (JSONException ignored) {
                 // failed to find body|subject
             }
-        } catch (JSONException e) {
+        } catch (JSONException ignored) {
             // failed to get commit object
         }
         // author avatar url
@@ -66,7 +92,7 @@ public class GithubObject extends CommitObject {
             mAuthorGravatar =
                 mJsonObject.getJSONObject("author")
                     .getString("avatar_url");
-        } catch (JSONException e) {
+        } catch (JSONException ignored) {
             // failed to find author avatar
         }
         // committer avatar url
@@ -74,14 +100,16 @@ public class GithubObject extends CommitObject {
             mCommitterGravatar =
                 mJsonObject.getJSONObject("committer")
                     .getString("avatar_url");
-        } catch (JSONException e) {
+        } catch (JSONException ignored) {
             // failed to find committer
         }
         // path
         StringTokenizer pathChunks = new StringTokenizer(mUrl, "/");
         while (pathChunks.hasMoreTokens()) {
-            String str = pathChunks.nextToken();
-            if (str.equals(new String(mConfig.ORGANIZATION))) {
+            String stringToken = pathChunks.nextToken();
+            // if the token matches our organization name then the next
+            // token represents our path
+            if (stringToken.equals(new String(mConfig.ORGANIZATION))) {
                 mPath = pathChunks.nextToken();
             }
         }

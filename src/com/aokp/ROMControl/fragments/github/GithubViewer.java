@@ -1,24 +1,39 @@
+
 package com.aokp.ROMControl.fragments.github;
+
+/*
+ * Copyright (C) 2012 The Android Open Kang Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import android.content.Context;
 import android.os.Bundle;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.AdapterView;
 
+/**
+ * Initial Screen shows all projects for github organization
+ */
 public class GithubViewer extends PreferenceFragment {
     private static final boolean DEBUG = true;
-    private static final boolean JSON_SPEW = true;
-    private static final String TAG = "DynamicChangelog";
+    private final String TAG = getClass().getSimpleName();
 
-    // classwide constants
     private static final String PREF_CAT = "dynamic_changelog";
 
-    // Dialogs (1001+)
-    private static final int COMMIT_INFO_DIALOG = 1001;
     private Context mContext;
     private static PreferenceCategory mCategory;
 
@@ -28,7 +43,7 @@ public class GithubViewer extends PreferenceFragment {
     private boolean ARE_IN_PROJECT_PATH;
 
     /**
-     * Called when the activity is first created.
+     * create applet
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -46,9 +61,11 @@ public class GithubViewer extends PreferenceFragment {
         setHasOptionsMenu(true);
     }
 
-    // this is the only method called right before every display of the menu
-    // here we choose what dynamic content to display for the menu
-    public void onPrepareOptionsMenu(Menu menu) {
+    /**
+     * this is the only method called right before every display of the menu
+     * here we choose what dynamic content to display for the menu
+     */
+        public void onPrepareOptionsMenu(Menu menu) {
         // remove old menu items
         menu.clear();
 
@@ -59,13 +76,6 @@ public class GithubViewer extends PreferenceFragment {
             menu.add(0, MENU_ID_PACKAGES, 0, getString(R.string.changelog_menu_projects_title));
     }
 
-    // XXX remove if not required to bring menu into view XXX
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        // pass the method on we don't need it our work was
-        // done in onPrepareOptionsMenu(Menu)
-        super.onCreateOptionsMenu(menu, inflater);
-    }
 
     /**
      * handle Menu onClick actions

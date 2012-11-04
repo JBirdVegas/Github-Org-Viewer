@@ -36,5 +36,6 @@
     <string name="toast_commitlog_info" formatted="false">Found %d commits in %d
         seconds
     </string>
+    <string name="github_organization">AOKP</string>
 
 </resources>

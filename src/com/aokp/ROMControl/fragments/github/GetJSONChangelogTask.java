@@ -1,5 +1,21 @@
 package com.aokp.ROMControl.fragments.github;
 
+/*
+ * Copyright (C) 2012 The Android Open Kang Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -20,13 +36,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 /**
- * Created with IntelliJ IDEA.
- * User: jbird
- * Date: 11/1/12
- * Time: 5:51 PM
+ * Displays parsed changelog from our changelog generator
+ * located @ ./vendor/aokp/bot/denseChangelog.sh
  */
 public class GetJSONChangelogTask extends AsyncTask<Void, Void, Void> {
     private final boolean DEBUG = false;
@@ -34,20 +47,26 @@ public class GetJSONChangelogTask extends AsyncTask<Void, Void, Void> {
     private final String TAG = getClass().getSimpleName();
     private final Context mContext;
     private final PreferenceCategory mCategory;
-    private ArrayList<ChangelogObject> mChangelogObjects;
 
     Config mConfig;
 
+    /**
+     * parses our changelog from json to Preferences
+     * @param context application context
+     * @param category container to hold commit views
+     */
     public GetJSONChangelogTask(Context context, PreferenceCategory category) {
         mContext = context;
         mCategory = category;
         mConfig = new Config();
-        mChangelogObjects = new ArrayList<ChangelogObject>(0);
     }
+
+    // UI thread
     protected void onPreExecute() {
         // meh...
     }
 
+    // worker thread
     protected Void doInBackground(Void... noused) {
         try {
             HttpClient httpClient = new DefaultHttpClient();
@@ -61,7 +80,7 @@ public class GetJSONChangelogTask extends AsyncTask<Void, Void, Void> {
             // debugging
             if (DEBUG)
                 Log.d(TAG, "projectCommitsArray.length() is: " + projectCommitsArray.length());
-            if (mConfig.JSON_SPEW)
+            if (Config.StaticVars.JSON_SPEW)
                 Log.d(TAG, "projectCommitsArray.toString() is: " + projectCommitsArray.toString());
 
             final ChangelogObject commitObject = new ChangelogObject(new JSONObject());
@@ -99,6 +118,7 @@ public class GetJSONChangelogTask extends AsyncTask<Void, Void, Void> {
         return null;
     }
 
+    // UI thread
     protected void onPostExecute(Void unused) {
 
     }

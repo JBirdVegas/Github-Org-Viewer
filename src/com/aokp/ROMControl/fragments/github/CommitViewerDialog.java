@@ -1,4 +1,21 @@
+
 package com.aokp.ROMControl.fragments.github;
+
+/*
+ * Copyright (C) 2012 The Android Open Kang Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -13,10 +30,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 /**
- * Created with IntelliJ IDEA.
- * User: jbird
- * Date: 11/1/12
- * Time: 4:13 PM
+ * Shows extended infomation about a selected commit
+ * in an AlertDialog
  */
 public class CommitViewerDialog extends AlertDialog {
     private final Context mContext;
@@ -44,7 +59,7 @@ public class CommitViewerDialog extends AlertDialog {
             (R.id.extended_commit_info_layout_scrollview);
         // so we scroll smoothly if commit message is large
         scroller.setSmoothScrollingEnabled(true);
-        scroller.fling(Config.DEFAULT_FLING_SPEED);
+        scroller.fling(Config.StaticVars.DEFAULT_FLING_SPEED);
 
         // gain object references
         LinearLayout authorContainer = (LinearLayout) commitExtendedInfoLayout.findViewById
@@ -120,20 +135,22 @@ public class CommitViewerDialog extends AlertDialog {
         sha_tv.setText(splitHash.toString());
 
         // make a builder to helps construct our dialog
-        this.setTitle(mContext.getString(R.string.commit_extended_info_title));
+        setTitle(mContext.getString(R.string.commit_extended_info_title));
 
         // the order we place the buttons in is important
-        // standard is:			| CANCEL | OK |
+        // standard is:			    | CANCEL | OK |
         // per our needs we use:	| CLOSE | WEBVIEW |
         mDialog.setButton(0, mContext.getString(R.string.button_close), new OnClickListener() {
             public void onClick(DialogInterface d, int button) {
                 // just let the dialog go
             }
         });
-        this.setButton(1, mContext.getString(R.string.button_webview), new OnClickListener() {
+        setButton(1, mContext.getString(R.string.button_webview), new OnClickListener() {
             public void onClick(DialogInterface d, int button) {
                 Intent i = new Intent(Intent.ACTION_VIEW);
-                String webviewUrl = "https://github.com/" + mConfig.ORGANIZATION + Config.StaticVars.PROJECT + "/commit/" + Config.StaticVars.COMMIT_SHA;
+                String webviewUrl = "https://github.com/" + mConfig.ORGANIZATION
+                        + Config.StaticVars.PROJECT + "/commit/"
+                        + Config.StaticVars.COMMIT_SHA;
                 i.setData(Uri.parse(webviewUrl));
                 mContext.startActivity(i);
             }
